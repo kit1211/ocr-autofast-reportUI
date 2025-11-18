@@ -1,0 +1,12 @@
+node_modules
+.bun
+.env
+.env.local
+*.log
+.vscode
+.idea
+*.swp
+*.swo
+dist
+build
+
