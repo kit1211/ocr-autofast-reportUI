@@ -14,15 +14,26 @@ export function OcrSummaryPanel({ summary, loading }: OcrSummaryPanelProps) {
       <CardHeader className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <CardTitle className="text-lg font-semibold">OCR Usage Summary</CardTitle>
-          <p className="text-sm text-gray-500">
-            รวมตามช่วงเวลาที่เลือก อ้างอิงราคา OpenRouter (Gemini 2.5 Flash)
-          </p>
+          <div className="space-y-1">
+            <p className="text-sm text-gray-500">
+              รวมตามช่วงเวลาที่เลือก อ้างอิงราคา OpenRouter (Gemini 2.5 Flash)
+            </p>
+            {summary && !loading && summary.exchangeRateLastUpdate && (
+              <p className="text-xs text-gray-500">
+                Exchange rate: {summary.exchangeRate.toFixed(4)} THB/USD • 
+                Updated: {new Date(summary.exchangeRateLastUpdate).toLocaleString('th-TH', { 
+                  dateStyle: 'short', 
+                  timeStyle: 'short' 
+                })}
+                {summary.exchangeRateSource && summary.exchangeRateSource !== 'fallback (error)' && (
+                  <span className="ml-1">
+                    • <a href={summary.exchangeRateSource} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs">Source</a>
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
         </div>
-        {summary && !loading && (
-          <span className="text-xs text-gray-500">
-            Exchange rate {summary.exchangeRate.toFixed(2)} THB/USD
-          </span>
-        )}
       </CardHeader>
       <CardContent>
         {loading ? (

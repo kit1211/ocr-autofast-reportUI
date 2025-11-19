@@ -13,6 +13,7 @@ import type {
   UserAgentRoute
 } from '@/types/analytics';
 import { DEFAULT_USD_TO_THB_RATE, OPENROUTER_OCR_PRICING, getOcrCostBreakdown } from './costs';
+import { getExchangeRate } from './exchange-rate';
 
 // Database connection helper
 // This creates connection on-demand to avoid errors during build time
@@ -544,6 +545,10 @@ export async function getOcrCostSummary(params: { days?: number; startDate?: str
     const sql = getConnection();
     const dateFilter = buildDateFilter(params);
 
+    // Fetch real-time exchange rate
+    const exchangeRateData = await getExchangeRate();
+    const currentRate = exchangeRateData.rate;
+
     const result = await sql`
       SELECT 
         COUNT(*) as total_responses,
@@ -557,7 +562,7 @@ export async function getOcrCostSummary(params: { days?: number; startDate?: str
     const totalInputTokens = Number(row.total_input_tokens || 0);
     const totalOutputTokens = Number(row.total_output_tokens || 0);
     const totalTokens = totalInputTokens + totalOutputTokens;
-    const { totalUsd, totalThb } = getOcrCostBreakdown(totalInputTokens, totalOutputTokens, DEFAULT_USD_TO_THB_RATE);
+    const { totalUsd, totalThb } = getOcrCostBreakdown(totalInputTokens, totalOutputTokens, currentRate);
 
     return {
       totalResponses: Number(row.total_responses || 0),
@@ -566,7 +571,9 @@ export async function getOcrCostSummary(params: { days?: number; startDate?: str
       totalTokens,
       totalUsd,
       totalThb,
-      exchangeRate: DEFAULT_USD_TO_THB_RATE,
+      exchangeRate: currentRate,
+      exchangeRateLastUpdate: exchangeRateData.lastUpdate,
+      exchangeRateSource: exchangeRateData.source,
       inputRatePerMillion: OPENROUTER_OCR_PRICING.inputPerMillion,
       outputRatePerMillion: OPENROUTER_OCR_PRICING.outputPerMillion
     };

@@ -95,6 +95,8 @@ export interface OcrCostSummary {
   totalUsd: number;
   totalThb: number;
   exchangeRate: number;
+  exchangeRateLastUpdate?: string;
+  exchangeRateSource?: string;
   inputRatePerMillion: number;
   outputRatePerMillion: number;
 }
