@@ -1,0 +1,18 @@
+# Next.js + Bun Project Rules
+
+## Development Commands
+- Use `bun run dev` for development
+- Use `bun run build` for production build
+- Use `bun run start` for production server
+
+## Code Style
+- Always use TypeScript
+- Use 'use client' directive for client components
+- Use @ alias for imports (@/lib, @/components, @/types)
+- Follow Next.js 15 App Router conventions
+
+## Database
+- PostgreSQL via postgres.js
+- Environment variables in .env.local
+- Never commit .env.local to git
+
