@@ -646,9 +646,9 @@ export async function getOcrCostByPath(
     `;
     
     const ocrStats = totalOcrStats[0];
-    const totalOcrRequests = Number(ocrStats.total_ocr_requests || 0);
-    const totalInputTokens = Number(ocrStats.total_input_tokens || 0);
-    const totalOutputTokens = Number(ocrStats.total_output_tokens || 0);
+    const totalOcrRequests = Number(ocrStats?.total_ocr_requests || 0);
+    const totalInputTokens = Number(ocrStats?.total_input_tokens || 0);
+    const totalOutputTokens = Number(ocrStats?.total_output_tokens || 0);
     
     // Calculate average tokens per request
     const avgInputPerRequest = totalOcrRequests > 0 ? totalInputTokens / totalOcrRequests : 0;
