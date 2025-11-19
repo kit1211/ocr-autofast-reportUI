@@ -14,18 +14,31 @@ import type {
 } from '@/types/analytics';
 import { DEFAULT_USD_TO_THB_RATE, OPENROUTER_OCR_PRICING, getOcrCostBreakdown } from './costs';
 
-// Database connection
-const DATABASE_URL = process.env.DATABASE_URL;
-
-if (!DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is not set');
+// Database connection helper
+// This creates connection on-demand to avoid errors during build time
+function getSql() {
+  const DATABASE_URL = process.env.DATABASE_URL;
+  
+  if (!DATABASE_URL) {
+    throw new Error('DATABASE_URL environment variable is not set');
+  }
+  
+  return postgres(DATABASE_URL, {
+    max: 10,
+    idle_timeout: 20,
+    connect_timeout: 30
+  });
 }
 
-const sql = postgres(DATABASE_URL, {
-  max: 10,
-  idle_timeout: 20,
-  connect_timeout: 30
-});
+// Create a lazy connection that will be initialized on first use
+let sql: ReturnType<typeof postgres> | null = null;
+
+function getConnection() {
+  if (!sql) {
+    sql = getSql();
+  }
+  return sql;
+}
 
 /**
  * Helper function to build WHERE clause for date filtering
@@ -34,6 +47,7 @@ function buildDateFilter(
   params: { days?: number; startDate?: string; endDate?: string },
   tableAlias?: string
 ) {
+  const sql = getConnection();
   const columnIdentifier = tableAlias
     ? sql.unsafe(`${tableAlias}."createdAt"`)
     : sql.unsafe(`"createdAt"`);
@@ -51,6 +65,7 @@ function buildDateFilter(
  */
 export async function getOverviewStats(params: { days?: number; startDate?: string; endDate?: string }): Promise<OverviewStats> {
   try {
+    const sql = getConnection();
     const dateFilter = buildDateFilter(params);
     
     const [requestResult, ocrSummary] = await Promise.all([
@@ -105,6 +120,7 @@ export async function getOverviewStats(params: { days?: number; startDate?: stri
  */
 export async function getTopEndpoints(params: { days?: number; startDate?: string; endDate?: string }, limit: number = 5): Promise<EndpointData[]> {
   try {
+    const sql = getConnection();
     const dateFilter = buildDateFilter(params);
     
     const result = await sql`
@@ -142,6 +158,7 @@ export async function getSlowestEndpoints(
   minRequests: number = 10
 ): Promise<EndpointData[]> {
   try {
+    const sql = getConnection();
     const dateFilter = buildDateFilter(params);
     
     const result = await sql`
@@ -180,6 +197,7 @@ export async function getErrorProneEndpoints(
   minRequests: number = 10
 ): Promise<ErrorProneEndpoint[]> {
   try {
+    const sql = getConnection();
     const dateFilter = buildDateFilter(params);
     
     const result = await sql`
@@ -245,6 +263,7 @@ export async function getEndpointsAnalysis(params: { days?: number; startDate?: 
  */
 export async function getUserAgentAnalysis(params: { days?: number; startDate?: string; endDate?: string }, limit: number = 50): Promise<UserAgentData[]> {
   try {
+    const sql = getConnection();
     const dateFilter = buildDateFilter(params);
     
     const result = await sql`
@@ -278,6 +297,7 @@ export async function getUserAgentAnalysis(params: { days?: number; startDate?: 
  */
 export async function getErrorBreakdown(params: { days?: number; startDate?: string; endDate?: string }): Promise<ErrorData[]> {
   try {
+    const sql = getConnection();
     const dateFilter = buildDateFilter(params);
     
     const result = await sql`
@@ -315,6 +335,7 @@ export async function getErrorBreakdown(params: { days?: number; startDate?: str
  */
 export async function getMethodStats(params: { days?: number; startDate?: string; endDate?: string }): Promise<MethodData[]> {
   try {
+    const sql = getConnection();
     const dateFilter = buildDateFilter(params);
     
     const result = await sql`
@@ -353,6 +374,7 @@ export async function getUserAgentComparison(
   limit: number = 10
 ): Promise<any> {
   try {
+    const sql = getConnection();
     const dateFilter = buildDateFilter(params);
     
     // Get primary agent metrics
@@ -519,6 +541,7 @@ export async function getUserAgentComparison(
  */
 export async function getOcrCostSummary(params: { days?: number; startDate?: string; endDate?: string }): Promise<OcrCostSummary> {
   try {
+    const sql = getConnection();
     const dateFilter = buildDateFilter(params);
 
     const result = await sql`
@@ -561,6 +584,7 @@ export async function getOcrCostByUserAgent(
   limit: number = 50
 ): Promise<OcrUserAgentCost[]> {
   try {
+    const sql = getConnection();
     const dateFilter = buildDateFilter(params, 'o');
     
     // Build user agent filter - handle both exact match and NULL/Unknown cases
@@ -628,6 +652,7 @@ export async function getOcrCostByPath(
   limit: number = 50
 ): Promise<OcrPathCost[]> {
   try {
+    const sql = getConnection();
     const dateFilter = buildDateFilter(params, 'r');
     
     // Since OcrResponse has no FK to RequestLog and no userAgent field,
@@ -727,6 +752,7 @@ export async function getUserAgentRoutes(
   }
 
   try {
+    const sql = getConnection();
     const dateFilter = buildDateFilter(params);
 
     const result = await sql`
@@ -775,6 +801,7 @@ export async function getUserAgentRoutes(
  */
 export async function testConnection(): Promise<boolean> {
   try {
+    const sql = getConnection();
     await sql`SELECT 1`;
     return true;
   } catch (error) {
@@ -787,9 +814,8 @@ export async function testConnection(): Promise<boolean> {
  * Close database connection (for cleanup)
  */
 export async function closeConnection(): Promise<void> {
-  await sql.end();
+  if (sql) {
+    await sql.end();
+  }
 }
-
-// Export the sql instance for custom queries if needed
-export { sql };
 
