@@ -42,10 +42,34 @@ import type {
 import { AlertCircle, BarChart3, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 
+// Calculate lottery period dates
+function getLotteryPeriodDates(): { startDate: string; endDate: string } {
+  const today = new Date();
+  const day = today.getDate();
+  
+  let startDate: Date;
+  const endDate = new Date(today);
+  
+  if (day >= 2 && day <= 16) {
+    startDate = new Date(today.getFullYear(), today.getMonth() - 1, 17);
+  } else if (day === 1) {
+    startDate = new Date(today.getFullYear(), today.getMonth() - 1, 17);
+  } else {
+    startDate = new Date(today.getFullYear(), today.getMonth(), 17);
+  }
+  
+  return {
+    startDate: startDate.toISOString().split('T')[0],
+    endDate: endDate.toISOString().split('T')[0]
+  };
+}
+
 export function Dashboard() {
+  const lotteryDates = getLotteryPeriodDates();
   const [dateRange, setDateRange] = useState<DateRange>({
-    type: 'days',
-    days: 7
+    type: 'custom',
+    startDate: lotteryDates.startDate,
+    endDate: lotteryDates.endDate
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -206,7 +230,7 @@ export function Dashboard() {
 
         {/* Controls */}
         <div className="bg-white rounded-lg shadow p-6 mb-6 flex flex-wrap items-end justify-between gap-4">
-          <DateRangeSelector onRangeChange={handleRangeChange} defaultDays={dateRange.days || 7} />
+          <DateRangeSelector onRangeChange={handleRangeChange} defaultDays={7} />
           
           <div className="flex items-center gap-4">
             {lastUpdated && (
@@ -335,7 +359,7 @@ export function Dashboard() {
           <p className="mt-1">
             {dateRange.type === 'days' 
               ? `แสดงข้อมูล ${dateRange.days} วันล่าสุด` 
-              : `แสดงข้อมูลตั้งแต่ ${dateRange.startDate} ถึง ${dateRange.endDate}`
+              : `แสดงข้อมูลตั้งแต่ ${new Date(dateRange.startDate || '').toLocaleDateString('th-TH')} ถึง ${new Date(dateRange.endDate || '').toLocaleDateString('th-TH')}`
             }
           </p>
         </div>

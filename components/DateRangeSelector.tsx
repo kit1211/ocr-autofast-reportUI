@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect as React_useEffect } from 'react';
+import * as React from 'react';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Input } from './ui/input';
@@ -14,33 +15,70 @@ interface DateRangeSelectorProps {
 
 type DateRangeOption = '7' | '15' | '30' | 'custom';
 
+// Calculate lottery period dates (Thai lottery: 1st and 16th of each month)
+function getLotteryPeriodDates(): { startDate: string; endDate: string } {
+  const today = new Date();
+  const day = today.getDate();
+  
+  let startDate: Date;
+  const endDate = new Date(today); // Today
+  
+  if (day >= 2 && day <= 16) {
+    // Period: 2nd to 16th → Start from 2nd of current month
+    startDate = new Date(today.getFullYear(), today.getMonth(), 2);
+  } else if (day === 1) {
+    // Day 1 is the last day of previous period → Start from 17th of previous month
+    startDate = new Date(today.getFullYear(), today.getMonth() - 1, 17);
+  } else {
+    // Period: 17th to 31st/1st → Start from 17th of current month
+    startDate = new Date(today.getFullYear(), today.getMonth(), 17);
+  }
+  
+  return {
+    startDate: startDate.toISOString().split('T')[0],
+    endDate: endDate.toISOString().split('T')[0]
+  };
+}
+
 export function DateRangeSelector({ onRangeChange, defaultDays = 7 }: DateRangeSelectorProps) {
-  const [selectedRange, setSelectedRange] = useState<DateRangeOption>('7');
+  const [selectedRange, setSelectedRange] = useState<DateRangeOption>('custom');
   const [showCustomInput, setShowCustomInput] = useState(false);
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
+  
+  // Calculate lottery period dates as default
+  const lotteryDates = getLotteryPeriodDates();
+  const [startDate, setStartDate] = useState<string>(lotteryDates.startDate);
+  const [endDate, setEndDate] = useState<string>(lotteryDates.endDate);
 
   const handleRangeChange = (value: DateRangeOption) => {
     setSelectedRange(value);
     
     if (value === 'custom') {
       setShowCustomInput(true);
-      // Set default dates (today and 7 days ago)
-      const today = new Date();
-      const sevenDaysAgo = new Date(today);
-      sevenDaysAgo.setDate(today.getDate() - 7);
-      
-      const todayStr = today.toISOString().split('T')[0];
-      const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
-      
-      setStartDate(sevenDaysAgoStr);
-      setEndDate(todayStr);
+      // Use current lottery period dates
+      const dates = getLotteryPeriodDates();
+      setStartDate(dates.startDate);
+      setEndDate(dates.endDate);
+      onRangeChange({ 
+        type: 'custom', 
+        startDate: dates.startDate, 
+        endDate: dates.endDate 
+      });
     } else {
       setShowCustomInput(false);
       const days = parseInt(value, 10);
       onRangeChange({ type: 'days', days });
     }
   };
+  
+  // Set initial range to lottery period on mount
+  React_useEffect(() => {
+    const dates = getLotteryPeriodDates();
+    onRangeChange({ 
+      type: 'custom', 
+      startDate: dates.startDate, 
+      endDate: dates.endDate 
+    });
+  }, []); // Empty dependency array = run once on mount
 
   const handleCustomSubmit = () => {
     if (!startDate || !endDate) {
@@ -84,10 +122,10 @@ export function DateRangeSelector({ onRangeChange, defaultDays = 7 }: DateRangeS
             <SelectValue placeholder="เลือกช่วงเวลา" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="custom">ช่วงหวยปัจจุบัน (Default)</SelectItem>
             <SelectItem value="7">7 วันล่าสุด</SelectItem>
             <SelectItem value="15">15 วันล่าสุด</SelectItem>
             <SelectItem value="30">30 วันล่าสุด</SelectItem>
-            <SelectItem value="custom">กำหนดเอง</SelectItem>
           </SelectContent>
         </Select>
       </div>
