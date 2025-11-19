@@ -13,7 +13,7 @@ interface DateRangeSelectorProps {
   defaultDays?: number;
 }
 
-type DateRangeOption = '7' | '15' | '30' | 'custom';
+type DateRangeOption = '7' | '15' | '30' | 'lottery' | 'custom';
 
 // Calculate lottery period dates (Thai lottery: 1st and 16th of each month)
 function getLotteryPeriodDates(): { startDate: string; endDate: string } {
@@ -41,7 +41,7 @@ function getLotteryPeriodDates(): { startDate: string; endDate: string } {
 }
 
 export function DateRangeSelector({ onRangeChange, defaultDays = 7 }: DateRangeSelectorProps) {
-  const [selectedRange, setSelectedRange] = useState<DateRangeOption>('custom');
+  const [selectedRange, setSelectedRange] = useState<DateRangeOption>('lottery');
   const [showCustomInput, setShowCustomInput] = useState(false);
   
   // Calculate lottery period dates as default
@@ -52,9 +52,9 @@ export function DateRangeSelector({ onRangeChange, defaultDays = 7 }: DateRangeS
   const handleRangeChange = (value: DateRangeOption) => {
     setSelectedRange(value);
     
-    if (value === 'custom') {
-      setShowCustomInput(true);
-      // Use current lottery period dates
+    if (value === 'lottery') {
+      setShowCustomInput(false);
+      // Use lottery period dates
       const dates = getLotteryPeriodDates();
       setStartDate(dates.startDate);
       setEndDate(dates.endDate);
@@ -63,6 +63,14 @@ export function DateRangeSelector({ onRangeChange, defaultDays = 7 }: DateRangeS
         startDate: dates.startDate, 
         endDate: dates.endDate 
       });
+    } else if (value === 'custom') {
+      setShowCustomInput(true);
+      // Keep current dates or use lottery dates as initial
+      if (!startDate || !endDate) {
+        const dates = getLotteryPeriodDates();
+        setStartDate(dates.startDate);
+        setEndDate(dates.endDate);
+      }
     } else {
       setShowCustomInput(false);
       const days = parseInt(value, 10);
@@ -122,10 +130,11 @@ export function DateRangeSelector({ onRangeChange, defaultDays = 7 }: DateRangeS
             <SelectValue placeholder="เลือกช่วงเวลา" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="custom">ช่วงหวยปัจจุบัน (Default)</SelectItem>
+            <SelectItem value="lottery">ช่วงหวยปัจจุบัน (Default)</SelectItem>
             <SelectItem value="7">7 วันล่าสุด</SelectItem>
             <SelectItem value="15">15 วันล่าสุด</SelectItem>
             <SelectItem value="30">30 วันล่าสุด</SelectItem>
+            <SelectItem value="custom">กำหนดเอง</SelectItem>
           </SelectContent>
         </Select>
       </div>
