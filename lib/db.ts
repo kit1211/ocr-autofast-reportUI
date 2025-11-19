@@ -26,8 +26,9 @@ function getSql() {
   
   return postgres(DATABASE_URL, {
     max: 10,
-    idle_timeout: 20,
-    connect_timeout: 30
+    // Remove timeout configs to avoid negative timeout warnings in production
+    // idle_timeout: 20,
+    // connect_timeout: 30
   });
 }
 
